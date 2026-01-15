@@ -8,9 +8,9 @@
             "name": "C++ Launch SIMP",
             "type": "cppdbg",
             "request": "launch",
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/builddir",
             "program": "${workspaceFolder}/builddir/simp",
-            "externalConsole": true,
+            "externalConsole": false,
             "logging": {
                 "moduleLoad": false,
                 "trace": true
