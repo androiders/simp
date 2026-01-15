@@ -1,0 +1,14 @@
+{
+  "gesture": {
+    "panStartThresholdPx": 2.0,
+    "pinchToWheelFactor": 0.02,
+    "wheelStep": 1.0,
+    "enableThumbZone": true,
+    "thumbZoneWFrac": 0.25,
+    "thumbZoneHFrac": 0.25
+  },
+  "mappings": {
+    "two_finger_drag": "pan_mmb_drag",
+    "pinch": "zoom_ctrl_wheel"
+  }
+}
