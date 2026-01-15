@@ -4,7 +4,7 @@
 #include <X11/keysym.h>
 
 #include <poll.h>
-#include <jansson.h>
+// #include <jansson.h>
 
 #include <sys/inotify.h>
 #include <unistd.h>
@@ -20,6 +20,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include "config.h"
 
 // ----------------- utilities -----------------
 
@@ -51,109 +52,109 @@ static std::optional<std::string> read_default_conf(const std::string& path) {
 
 // ----------------- config model -----------------
 
-enum class ActionType {
-  NoType = 0,
-  PanMMBDrag,
-  ZoomCtrlWheel
-};
+// enum class ActionType {
+//   NoType = 0,
+//   PanMMBDrag,
+//   ZoomCtrlWheel
+// };
 
-static ActionType actionFromString(const std::string& s) {
-  if (s == "pan_mmb_drag") return ActionType::PanMMBDrag;
-  if (s == "zoom_ctrl_wheel") return ActionType::ZoomCtrlWheel;
-  return ActionType::NoType;
-}
+// static ActionType actionFromString(const std::string& s) {
+//   if (s == "pan_mmb_drag") return ActionType::PanMMBDrag;
+//   if (s == "zoom_ctrl_wheel") return ActionType::ZoomCtrlWheel;
+//   return ActionType::NoType;
+// }
 
-enum class EventType {
-  Unknown = 0,
-  TwoFingerDrag,
-  Pinch
-};
+// enum class EventType {
+//   Unknown = 0,
+//   TwoFingerDrag,
+//   Pinch
+// };
 
-static EventType eventFromString(const std::string& s) {
-  if (s == "two_finger_drag") return EventType::TwoFingerDrag;
-  if (s == "pinch") return EventType::Pinch;
-  return EventType::Unknown;
-}
+// static EventType eventFromString(const std::string& s) {
+//   if (s == "two_finger_drag") return EventType::TwoFingerDrag;
+//   if (s == "pinch") return EventType::Pinch;
+//   return EventType::Unknown;
+// }
 
-struct Settings {
-  double panStartThresholdPx = 2.0;
-  double pinchToWheelFactor  = 0.02;
-  double wheelStep           = 1.0;
+// struct Settings {
+//   double panStartThresholdPx = 2.0;
+//   double pinchToWheelFactor  = 0.02;
+//   double wheelStep           = 1.0;
 
-  bool enableThumbZone = true;
-  double thumbZoneWFrac = 0.25;
-  double thumbZoneHFrac = 0.25;
-};
+//   bool enableThumbZone = true;
+//   double thumbZoneWFrac = 0.25;
+//   double thumbZoneHFrac = 0.25;
+// };
 
-struct MappingTable {
-  std::unordered_map<EventType, ActionType> map;
-  ActionType get(EventType e) const {
-    auto it = map.find(e);
-    return (it == map.end()) ? ActionType::NoType : it->second;
-  }
-};
+// struct MappingTable {
+//   std::unordered_map<EventType, ActionType> map;
+//   ActionType get(EventType e) const {
+//     auto it = map.find(e);
+//     return (it == map.end()) ? ActionType::NoType : it->second;
+//   }
+// };
 
-static bool json_get_number(json_t* obj, const char* key, double& out) {
-  json_t* v = json_object_get(obj, key);
-  if (!v || !json_is_number(v)) return false;
-  out = json_number_value(v);
-  return true;
-}
-static bool json_get_bool(json_t* obj, const char* key, bool& out) {
-  json_t* v = json_object_get(obj, key);
-  if (!v || !json_is_boolean(v)) return false;
-  out = json_is_true(v);
-  return true;
-}
+// static bool json_get_number(json_t* obj, const char* key, double& out) {
+//   json_t* v = json_object_get(obj, key);
+//   if (!v || !json_is_number(v)) return false;
+//   out = json_number_value(v);
+//   return true;
+// }
+// static bool json_get_bool(json_t* obj, const char* key, bool& out) {
+//   json_t* v = json_object_get(obj, key);
+//   if (!v || !json_is_boolean(v)) return false;
+//   out = json_is_true(v);
+//   return true;
+// }
 
-static bool load_json_config(const std::string& path, Settings& s, MappingTable& mt) {
-  json_error_t err{};
-  json_t* root = json_load_file(path.c_str(), 0, &err);
-  if (!root) {
-    std::fprintf(stderr, "config: failed to load %s (%d:%d): %s\n",
-                 path.c_str(), err.line, err.column, err.text);
-    return false;
-  }
-  if (!json_is_object(root)) {
-    std::fprintf(stderr, "config: %s root is not an object\n", path.c_str());
-    json_decref(root);
-    return false;
-  }
+// static bool load_json_config(const std::string& path, Settings& s, MappingTable& mt) {
+//   json_error_t err{};
+//   json_t* root = json_load_file(path.c_str(), 0, &err);
+//   if (!root) {
+//     std::fprintf(stderr, "config: failed to load %s (%d:%d): %s\n",
+//                  path.c_str(), err.line, err.column, err.text);
+//     return false;
+//   }
+//   if (!json_is_object(root)) {
+//     std::fprintf(stderr, "config: %s root is not an object\n", path.c_str());
+//     json_decref(root);
+//     return false;
+//   }
 
-  // gesture
-  if (json_t* g = json_object_get(root, "gesture"); g && json_is_object(g)) {
-    json_get_number(g, "panStartThresholdPx", s.panStartThresholdPx);
-    json_get_number(g, "pinchToWheelFactor",  s.pinchToWheelFactor);
-    json_get_number(g, "wheelStep",           s.wheelStep);
-    json_get_bool(g,   "enableThumbZone",     s.enableThumbZone);
-    json_get_number(g, "thumbZoneWFrac",      s.thumbZoneWFrac);
-    json_get_number(g, "thumbZoneHFrac",      s.thumbZoneHFrac);
-  }
+//   // gesture
+//   if (json_t* g = json_object_get(root, "gesture"); g && json_is_object(g)) {
+//     json_get_number(g, "panStartThresholdPx", s.panStartThresholdPx);
+//     json_get_number(g, "pinchToWheelFactor",  s.pinchToWheelFactor);
+//     json_get_number(g, "wheelStep",           s.wheelStep);
+//     json_get_bool(g,   "enableThumbZone",     s.enableThumbZone);
+//     json_get_number(g, "thumbZoneWFrac",      s.thumbZoneWFrac);
+//     json_get_number(g, "thumbZoneHFrac",      s.thumbZoneHFrac);
+//   }
 
-  // mappings
-  if (json_t* m = json_object_get(root, "mappings"); m && json_is_object(m)) {
-    // clear old mappings and rebuild
-    mt.map.clear();
+//   // mappings
+//   if (json_t* m = json_object_get(root, "mappings"); m && json_is_object(m)) {
+//     // clear old mappings and rebuild
+//     mt.map.clear();
 
-    const char* key = nullptr;
-    json_t* val = nullptr;
-    json_object_foreach(m, key, val) {
-      if (!json_is_string(val)) continue;
+//     const char* key = nullptr;
+//     json_t* val = nullptr;
+//     json_object_foreach(m, key, val) {
+//       if (!json_is_string(val)) continue;
 
-      EventType e = eventFromString(key);
-      ActionType a = actionFromString(json_string_value(val));
-      if (e == EventType::Unknown || a == ActionType::NoType) {
-        std::fprintf(stderr, "config: unknown mapping '%s' -> '%s'\n",
-                     key, json_string_value(val));
-        continue;
-      }
-      mt.map[e] = a;
-    }
-  }
+//       EventType e = eventFromString(key);
+//       ActionType a = actionFromString(json_string_value(val));
+//       if (e == EventType::Unknown || a == ActionType::NoType) {
+//         std::fprintf(stderr, "config: unknown mapping '%s' -> '%s'\n",
+//                      key, json_string_value(val));
+//         continue;
+//       }
+//       mt.map[e] = a;
+//     }
+//   }
 
-  json_decref(root);
-  return true;
-}
+//   json_decref(root);
+//   return true;
+// }
 
 // ----------------- daemon core (gesture MVP) -----------------
 
@@ -267,7 +268,7 @@ struct Daemon {
     unsigned char mask_data[XIMaskLen(XI_LASTEVENT)];
     std::memset(mask_data, 0, sizeof(mask_data));
 
-    mask.deviceid = XIAllDevices;
+    mask.deviceid = XIAllMasterDevices;
     mask.mask_len = sizeof(mask_data);
     mask.mask = mask_data;
 
@@ -276,6 +277,10 @@ struct Daemon {
     XISetMask(mask.mask, XI_TouchEnd);
     XISetMask(mask.mask, XI_ButtonPress);
     XISetMask(mask.mask, XI_ButtonRelease);
+    XISetMask(mask.mask, XI_RawTouchBegin);
+    XISetMask(mask.mask, XI_RawTouchUpdate);
+    XISetMask(mask.mask, XI_RawTouchEnd);
+
 
     XISelectEvents(dpy, root, &mask, 1);
     XFlush(dpy);
@@ -318,6 +323,7 @@ struct Daemon {
     if(cookie->type != GenericEvent || cookie->extension != xi_opcode) return;
     if(!XGetEventData(dpy, cookie)) return;
 
+  
     int t = cookie->evtype;
     if (t == XI_TouchBegin || t == XI_TouchUpdate || t == XI_TouchEnd) {
       auto* xiev = reinterpret_cast<XIDeviceEvent*>(cookie->data);
@@ -329,6 +335,12 @@ struct Daemon {
 
       if (t == XI_TouchBegin) tp.down = true;
       else if (t == XI_TouchEnd) { tp.down = false; gs.pts.erase(tid); }
+
+      std::fprintf(stderr,
+  "XI event %d device=%d sourceid=%d\n",
+  cookie->evtype,
+  xiev->deviceid,
+  xiev->sourceid);
 
       update_from_touches();
     } else if (t == XI_ButtonPress || t == XI_ButtonRelease) {
@@ -418,13 +430,17 @@ struct Daemon {
 };
 
 int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::fprintf(stderr, "usage: %s /path/to/default.conf\n", argv[0]);
-    return 2;
+  
+  std::string config = "./current.conf";
+
+  if (argc == 2) {
+    config = argv[1];
+    // std::fprintf(stderr, "usage: %s /path/to/default.conf\n", argv[0]);
+    // return 2;
   }
 
   Daemon d;
-  d.defaultConfPath = argv[1];
+  d.defaultConfPath = config;
 
   // Default mappings if no config loads yet
   d.mappings.map[EventType::TwoFingerDrag] = ActionType::PanMMBDrag;
