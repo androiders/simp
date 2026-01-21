@@ -29,132 +29,7 @@ static void die(const char* msg) {
   std::exit(1);
 }
 
-static std::string trim(std::string s) {
-  auto isspace_ = [](unsigned char c){ return std::isspace(c); };
-  while (!s.empty() && isspace_((unsigned char)s.front())) s.erase(s.begin());
-  while (!s.empty() && isspace_((unsigned char)s.back())) s.pop_back();
-  return s;
-}
 
-static std::optional<std::string> read_default_conf(const std::string& path) {
-  std::ifstream f(path);
-  if (!f.is_open()) return std::nullopt;
-
-  std::string line;
-  while (std::getline(f, line)) {
-    line = trim(line);
-    if (line.empty()) continue;
-    if (!line.empty() && line[0] == '#') continue;
-    return line; // first usable line is the json path
-  }
-  return std::nullopt;
-}
-
-// ----------------- config model -----------------
-
-// enum class ActionType {
-//   NoType = 0,
-//   PanMMBDrag,
-//   ZoomCtrlWheel
-// };
-
-// static ActionType actionFromString(const std::string& s) {
-//   if (s == "pan_mmb_drag") return ActionType::PanMMBDrag;
-//   if (s == "zoom_ctrl_wheel") return ActionType::ZoomCtrlWheel;
-//   return ActionType::NoType;
-// }
-
-// enum class EventType {
-//   Unknown = 0,
-//   TwoFingerDrag,
-//   Pinch
-// };
-
-// static EventType eventFromString(const std::string& s) {
-//   if (s == "two_finger_drag") return EventType::TwoFingerDrag;
-//   if (s == "pinch") return EventType::Pinch;
-//   return EventType::Unknown;
-// }
-
-// struct Settings {
-//   double panStartThresholdPx = 2.0;
-//   double pinchToWheelFactor  = 0.02;
-//   double wheelStep           = 1.0;
-
-//   bool enableThumbZone = true;
-//   double thumbZoneWFrac = 0.25;
-//   double thumbZoneHFrac = 0.25;
-// };
-
-// struct MappingTable {
-//   std::unordered_map<EventType, ActionType> map;
-//   ActionType get(EventType e) const {
-//     auto it = map.find(e);
-//     return (it == map.end()) ? ActionType::NoType : it->second;
-//   }
-// };
-
-// static bool json_get_number(json_t* obj, const char* key, double& out) {
-//   json_t* v = json_object_get(obj, key);
-//   if (!v || !json_is_number(v)) return false;
-//   out = json_number_value(v);
-//   return true;
-// }
-// static bool json_get_bool(json_t* obj, const char* key, bool& out) {
-//   json_t* v = json_object_get(obj, key);
-//   if (!v || !json_is_boolean(v)) return false;
-//   out = json_is_true(v);
-//   return true;
-// }
-
-// static bool load_json_config(const std::string& path, Settings& s, MappingTable& mt) {
-//   json_error_t err{};
-//   json_t* root = json_load_file(path.c_str(), 0, &err);
-//   if (!root) {
-//     std::fprintf(stderr, "config: failed to load %s (%d:%d): %s\n",
-//                  path.c_str(), err.line, err.column, err.text);
-//     return false;
-//   }
-//   if (!json_is_object(root)) {
-//     std::fprintf(stderr, "config: %s root is not an object\n", path.c_str());
-//     json_decref(root);
-//     return false;
-//   }
-
-//   // gesture
-//   if (json_t* g = json_object_get(root, "gesture"); g && json_is_object(g)) {
-//     json_get_number(g, "panStartThresholdPx", s.panStartThresholdPx);
-//     json_get_number(g, "pinchToWheelFactor",  s.pinchToWheelFactor);
-//     json_get_number(g, "wheelStep",           s.wheelStep);
-//     json_get_bool(g,   "enableThumbZone",     s.enableThumbZone);
-//     json_get_number(g, "thumbZoneWFrac",      s.thumbZoneWFrac);
-//     json_get_number(g, "thumbZoneHFrac",      s.thumbZoneHFrac);
-//   }
-
-//   // mappings
-//   if (json_t* m = json_object_get(root, "mappings"); m && json_is_object(m)) {
-//     // clear old mappings and rebuild
-//     mt.map.clear();
-
-//     const char* key = nullptr;
-//     json_t* val = nullptr;
-//     json_object_foreach(m, key, val) {
-//       if (!json_is_string(val)) continue;
-
-//       EventType e = eventFromString(key);
-//       ActionType a = actionFromString(json_string_value(val));
-//       if (e == EventType::Unknown || a == ActionType::NoType) {
-//         std::fprintf(stderr, "config: unknown mapping '%s' -> '%s'\n",
-//                      key, json_string_value(val));
-//         continue;
-//       }
-//       mt.map[e] = a;
-//     }
-//   }
-
-//   json_decref(root);
-//   return true;
-// }
 
 // ----------------- daemon core (gesture MVP) -----------------
 
@@ -210,8 +85,10 @@ struct Daemon {
   int xi_opcode=-1;
   Window root=0;
 
-  Settings settings;
-  MappingTable mappings;
+  Config cfg;
+
+//  Settings settings;
+//  MappingTable mappings;
   GestureState gs;
 
   std::string defaultConfPath;
@@ -234,16 +111,17 @@ struct Daemon {
       return true;
     }
 
-    Settings newS = settings;     // start from current as base
-    MappingTable newM = mappings; // copy current
 
-    if (!load_json_config(newJson, newS, newM)) {
+    //Settings newS = settings;     // start from current as base
+    //MappingTable newM = mappings; // copy current
+
+    if (!cfg.load(newJson)) {
       std::fprintf(stderr, "config: keeping existing config (failed to load %s)\n", newJson.c_str());
       return false;
     }
 
-    settings = newS;
-    mappings = newM;
+    //settings = newS;
+    //mappings = newM;
     activeJsonPath = newJson;
 
     std::fprintf(stderr, "config: switched to %s\n", activeJsonPath.c_str());
@@ -389,16 +267,16 @@ struct Daemon {
     double dd = d  - gs.lastPinchDist;
 
     // event -> action mapping
-    if (std::abs(dx) + std::abs(dy) >= settings.panStartThresholdPx) {
-      if (mappings.get(EventType::TwoFingerDrag) == ActionType::PanMMBDrag) {
+    if (std::abs(dx) + std::abs(dy) >= cfg.panStartThresholdPx) {
+      if (cfg.get(EventType::TwoFingerDrag) == ActionType::PanMMBDrag) {
         if (!gs.mmbDown) { sendButton(dpy, 2, true); gs.mmbDown = true; }
         sendMouseRel(dpy, (int)std::lround(dx), (int)std::lround(dy));
       }
     }
-    if (mappings.get(EventType::Pinch) == ActionType::ZoomCtrlWheel) {
-      gs.pinchAccum += dd * settings.pinchToWheelFactor;
-      while (gs.pinchAccum >= 1.0) { sendWheel(dpy, +1, (int)std::lround(settings.wheelStep), true); gs.pinchAccum -= 1.0; }
-      while (gs.pinchAccum <= -1.0) { sendWheel(dpy, -1, (int)std::lround(settings.wheelStep), true); gs.pinchAccum += 1.0; }
+    if (cfg.get(EventType::Pinch) == ActionType::ZoomCtrlWheel) {
+      gs.pinchAccum += dd * cfg.pinchToWheelFactor;
+      while (gs.pinchAccum >= 1.0) { sendWheel(dpy, +1, (int)std::lround(cfg.wheelStep), true); gs.pinchAccum -= 1.0; }
+      while (gs.pinchAccum <= -1.0) { sendWheel(dpy, -1, (int)std::lround(cfg.wheelStep), true); gs.pinchAccum += 1.0; }
     }
 
     gs.lastCx = cx; gs.lastCy = cy;
@@ -443,8 +321,8 @@ int main(int argc, char** argv) {
   d.defaultConfPath = config;
 
   // Default mappings if no config loads yet
-  d.mappings.map[EventType::TwoFingerDrag] = ActionType::PanMMBDrag;
-  d.mappings.map[EventType::Pinch] = ActionType::ZoomCtrlWheel;
+  //d.cfg.map[EventType::TwoFingerDrag] = ActionType::PanMMBDrag;
+  //d.mappings.map[EventType::Pinch] = ActionType::ZoomCtrlWheel;
 
   d.setup_xi2();
   d.setup_inotify();
