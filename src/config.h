@@ -4,6 +4,9 @@
 #include "events.h"
 #include "actions.h"
 
+const std::string APP_NAME = "simp";
+const std::string DEFAULT_CONFIG_FILE = "default.conf";
+
 using EventActionMap = std::unordered_map<EventType, ActionType>;
 
 class Config 
@@ -12,8 +15,10 @@ class Config
         Config() = default;
         ~Config() = default;    
     
+        static std::string getUserConfigPath();
+
         bool load(const std::string &path);
-        
+
         bool apply_config_from_default_conf();
 
         ActionType get(EventType e) const;
@@ -27,6 +32,8 @@ class Config
         double thumbZoneHFrac = 0.25;
 
         EventActionMap eaMap;
+
+        std::string activeJson;
 
 };
 

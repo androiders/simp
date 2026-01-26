@@ -98,34 +98,9 @@ struct Daemon {
   int inofd = -1;
   int watch = -1;
 
-  bool apply_config_from_default_conf() {
-    auto p = read_default_conf(defaultConfPath);
-    if (!p) {
-      std::fprintf(stderr, "config: default.conf unreadable or empty: %s\n", defaultConfPath.c_str());
-      return false;
-    }
-
-    std::string newJson = *p;
-    if (newJson == activeJsonPath) {
-      // same profile; still ok
-      return true;
-    }
-
-
-    //Settings newS = settings;     // start from current as base
-    //MappingTable newM = mappings; // copy current
-
-    if (!cfg.load(newJson)) {
-      std::fprintf(stderr, "config: keeping existing config (failed to load %s)\n", newJson.c_str());
-      return false;
-    }
-
-    //settings = newS;
-    //mappings = newM;
-    activeJsonPath = newJson;
-
-    std::fprintf(stderr, "config: switched to %s\n", activeJsonPath.c_str());
-    return true;
+  bool apply_config_from_default_conf() 
+  {
+    return cfg.apply_config_from_default_conf();
   }
 
   void setup_xi2() {

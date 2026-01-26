@@ -1,6 +1,24 @@
 #include <optional>
+#include <fstream>
 #include "config.h"
 #include "json_helpers.h"
+
+
+
+std::string Config::getUserConfigPath()
+{
+    const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
+    if (xdgConfigHome != nullptr) {
+        return std::string(xdgConfigHome) + "/" + APP_NAME;
+    } else {
+        // Fall back to ~/.config
+        const char* homeDir = std::getenv("HOME");
+        if (homeDir == nullptr) {
+            throw std::runtime_error("HOME environment variable not set!");
+        }
+        return std::string(homeDir) + "/.config/" + APP_NAME;
+    }
+}
 
 static std::string trim(std::string s) {
   auto isspace_ = [](unsigned char c){ return std::isspace(c); };
@@ -90,7 +108,8 @@ bool Config::load(const std::string &path)
 }
 
 
-  bool apply_config_from_default_conf() {
+  bool Config::apply_config_from_default_conf() {
+    std::string defaultConfPath = getUserConfigPath() + "/" + DEFAULT_CONFIG_FILE;
     auto p = read_default_conf(defaultConfPath);
     if (!p) {
       std::fprintf(stderr, "config: default.conf unreadable or empty: %s\n", defaultConfPath.c_str());
@@ -98,25 +117,21 @@ bool Config::load(const std::string &path)
     }
 
     std::string newJson = *p;
-    if (newJson == activeJsonPath) {
+    if (newJson == this->activeJson) {
       // same profile; still ok
       return true;
     }
 
-
-    //Settings newS = settings;     // start from current as base
-    //MappingTable newM = mappings; // copy current
-
-    if (!cfg.load(newJson)) {
+    if (!this->load(newJson)) {
       std::fprintf(stderr, "config: keeping existing config (failed to load %s)\n", newJson.c_str());
       return false;
     }
 
     //settings = newS;
     //mappings = newM;
-    activeJsonPath = newJson;
+    this->activeJson = newJson;
 
-    std::fprintf(stderr, "config: switched to %s\n", activeJsonPath.c_str());
+    std::fprintf(stderr, "config: switched to %s\n", this->activeJson.c_str());
     return true;
   }
 
