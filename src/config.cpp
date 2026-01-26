@@ -1,24 +1,10 @@
 #include <optional>
 #include <fstream>
 #include "config.h"
-#include "json_helpers.h"
+//#include "json_helpers.h"
 #include "spdlog/spdlog.h"
+#include "settings.h"
 
-
-std::string Config::getUserConfigPath()
-{
-    const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
-    if (xdgConfigHome != nullptr) {
-        return std::string(xdgConfigHome) + "/" + APP_NAME;
-    } else {
-        // Fall back to ~/.config
-        const char* homeDir = std::getenv("HOME");
-        if (homeDir == nullptr) {
-            throw std::runtime_error("HOME environment variable not set!");
-        }
-        return std::string(homeDir) + "/.config/" + APP_NAME;
-    }
-}
 
 static std::string trim(std::string s) {
   auto isspace_ = [](unsigned char c){ return std::isspace(c); };
@@ -56,13 +42,12 @@ bool Config::load(const std::string &path)
     json_t *root = json_load_file(path.c_str(), 0, &err);
     if (!root)
     {
-        std::fprintf(stderr, "config: failed to load %s (%d:%d): %s\n",
-                     path.c_str(), err.line, err.column, err.text);
+        spdlog::error("config: failed to load {} ({}:{}): {}", path, err.line, err.column, err.text);
         return false;
     }
     if (!json_is_object(root))
     {
-        std::fprintf(stderr, "config: %s root is not an object\n", path.c_str());
+        spdlog::error("config: {} root is not an object", path);
         json_decref(root);
         return false;
     }
@@ -95,8 +80,7 @@ bool Config::load(const std::string &path)
             ActionType a = actionFromString(json_string_value(val));
             if (e == EventType::Unknown || a == ActionType::NoType)
             {
-                std::fprintf(stderr, "config: unknown mapping '%s' -> '%s'\n",
-                             key, json_string_value(val));
+                spdlog::warn("config: unknown mapping '{} -> {}'", key, json_string_value(val));
                 continue;
             }
             this->eaMap[e] = a;
@@ -108,28 +92,21 @@ bool Config::load(const std::string &path)
 }
 
 
-  bool Config::apply_config_from_default_conf() {
-    std::string defaultConfPath = getUserConfigPath() + "/" + DEFAULT_CONFIG_FILE;
-    auto p = read_default_conf(defaultConfPath);
-    if (!p) {
-        spdlog::error("config: default.conf unreadable or empty: {}", defaultConfPath);
-        return false;
-    }
+  bool Config::applyConfigFromSettings(const Settings & settings) {
+    auto conf = settings.getConfig();
 
-    std::string newJson = *p;
-    if (newJson == this->activeJson) {
+    if (conf == this->activeJson) {
       // same profile; still ok
       return true;
     }
 
-    if (!this->load(newJson)) {
-        spdlog::error("config: failed to load new config: {}", newJson);
+    std::string confPath = settings.getConfigFilePath().string();
+    if (!this->load(confPath)) {
+        spdlog::error("config: failed to load new config: {}", confPath);
         return false;
     }
 
-    //settings = newS;
-    //mappings = newM;
-    this->activeJson = newJson;
+    this->activeJson = conf;
     spdlog::info("config: switched to {}", this->activeJson);
     return true;
   }

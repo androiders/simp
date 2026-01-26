@@ -1,13 +1,13 @@
 #include <string>
 #include <unordered_map>
+#include <filesystem>
 
 #include "events.h"
 #include "actions.h"
 
-const std::string APP_NAME = "simp";
-const std::string DEFAULT_CONFIG_FILE = "default.conf";
-
 using EventActionMap = std::unordered_map<EventType, ActionType>;
+
+class Settings;
 
 class Config 
 {
@@ -15,11 +15,9 @@ class Config
         Config() = default;
         ~Config() = default;    
     
-        static std::string getUserConfigPath();
-
         bool load(const std::string &path);
 
-        bool apply_config_from_default_conf();
+        bool applyConfigFromSettings(const Settings & settings);
 
         ActionType get(EventType e) const;
 

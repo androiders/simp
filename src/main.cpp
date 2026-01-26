@@ -22,6 +22,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include "settings.h"
 #include "config.h"
 
 // ----------------- utilities -----------------
@@ -100,10 +101,14 @@ struct Daemon {
   int inofd = -1;
   int watch = -1;
 
-  bool apply_config_from_default_conf() 
-  {
-    return cfg.apply_config_from_default_conf();
+  bool updateFromSettings(const Settings & settings) {
+    return cfg.applyConfigFromSettings(settings);
   }
+
+  // bool apply_config_from_default_conf(const Settings& settings) 
+  // {
+  //   return cfg.applyConfigFromSettings(settings);
+  // }
 
   void setup_xi2() {
     dpy = XOpenDisplay(nullptr);
@@ -171,7 +176,8 @@ struct Daemon {
       // after draining.
     }
 
-    apply_config_from_default_conf();
+    Settings settings = Settings::reload();
+    updateFromSettings(settings);
   }
 
   void dispatch_cookie(XGenericEventCookie* cookie) {
@@ -285,17 +291,19 @@ struct Daemon {
 };
 
 int main(int argc, char** argv) {
-  
-  std::string config = "./current.conf";
+
+  std::string settingsFile = "./settings.json";
 
   if (argc == 2) {
-    config = argv[1];
+    settingsFile = argv[1];
     // std::fprintf(stderr, "usage: %s /path/to/default.conf\n", argv[0]);
     // return 2;
   }
 
+  Settings settings = Settings::load(settingsFile);
+
   Daemon d;
-  d.defaultConfPath = config;
+  d.defaultConfPath = settings.getSettingsFilePath().string();
 
   // Default mappings if no config loads yet
   //d.cfg.map[EventType::TwoFingerDrag] = ActionType::PanMMBDrag;
@@ -308,8 +316,11 @@ int main(int argc, char** argv) {
   d.setup_xi2();
   d.setup_inotify();
   // Initial config load
-  d.apply_config_from_default_conf();
-
+  if(!d.updateFromSettings(settings))
+  {
+    spdlog::error("touchwm_daemon: no valid config loaded at startup.");
+    exit(1);
+  }
   spdlog::info("touchwm_daemon_hotconfig running.");
   spdlog::info("watching {}", d.defaultConfPath);
   spdlog::info("active JSON: {}", d.activeJsonPath.empty() ? "(none)" : d.activeJsonPath);

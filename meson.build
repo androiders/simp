@@ -14,7 +14,7 @@ jsonDeps = dependency('jansson', required: true)
 
 incdir = include_directories('3rd-party/spdlog/')
 
-executable('simp', 'src/main.cpp','src/config.cpp', include_directories : incdir,
+executable('simp', 'src/main.cpp','src/config.cpp', 'src/settings.cpp', include_directories : incdir,
     dependencies: x11deps + [jsonDeps])
     
 configure_file(
@@ -24,7 +24,7 @@ configure_file(
 )
 
 configure_file(
-  input: 'config/current.conf',
+  input: 'config/settings.json',
   output: 'current.conf',
   copy: true
 )

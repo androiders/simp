@@ -1,0 +1,5 @@
+{
+    "config":"default.json",
+    "log_level":"info",
+    "log_file":"touchwm_daemon.log"
+}
