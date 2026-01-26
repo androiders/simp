@@ -2,7 +2,7 @@
 #include <fstream>
 #include "config.h"
 #include "json_helpers.h"
-
+#include "spdlog/spdlog.h"
 
 
 std::string Config::getUserConfigPath()
@@ -112,8 +112,8 @@ bool Config::load(const std::string &path)
     std::string defaultConfPath = getUserConfigPath() + "/" + DEFAULT_CONFIG_FILE;
     auto p = read_default_conf(defaultConfPath);
     if (!p) {
-      std::fprintf(stderr, "config: default.conf unreadable or empty: %s\n", defaultConfPath.c_str());
-      return false;
+        spdlog::error("config: default.conf unreadable or empty: {}", defaultConfPath);
+        return false;
     }
 
     std::string newJson = *p;
@@ -123,15 +123,14 @@ bool Config::load(const std::string &path)
     }
 
     if (!this->load(newJson)) {
-      std::fprintf(stderr, "config: keeping existing config (failed to load %s)\n", newJson.c_str());
-      return false;
+        spdlog::error("config: failed to load new config: {}", newJson);
+        return false;
     }
 
     //settings = newS;
     //mappings = newM;
     this->activeJson = newJson;
-
-    std::fprintf(stderr, "config: switched to %s\n", this->activeJson.c_str());
+    spdlog::info("config: switched to {}", this->activeJson);
     return true;
   }
 

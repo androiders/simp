@@ -3,6 +3,8 @@
 #include <X11/extensions/XTest.h>
 #include <X11/keysym.h>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 #include <poll.h>
 // #include <jansson.h>
 
@@ -299,19 +301,18 @@ int main(int argc, char** argv) {
   //d.cfg.map[EventType::TwoFingerDrag] = ActionType::PanMMBDrag;
   //d.mappings.map[EventType::Pinch] = ActionType::ZoomCtrlWheel;
 
+//  auto console = spdlog::stdout_color_mt("console");    
+// auto err_logger = spdlog::stderr_color_mt("stderr");    
+  //spdlog::get("console")->info("loggers can be retrieved from a global registry using the spdlog::get(logger_name)");
+
   d.setup_xi2();
   d.setup_inotify();
-
   // Initial config load
   d.apply_config_from_default_conf();
 
-  std::fprintf(stderr,
-    "touchwm_daemon_hotconfig running.\n"
-    "Watching: %s\n"
-    "Active JSON: %s\n",
-    d.defaultConfPath.c_str(),
-    d.activeJsonPath.empty() ? "(none)" : d.activeJsonPath.c_str()
-  );
+  spdlog::info("touchwm_daemon_hotconfig running.");
+  spdlog::info("watching {}", d.defaultConfPath);
+  spdlog::info("active JSON: {}", d.activeJsonPath.empty() ? "(none)" : d.activeJsonPath);
 
   d.run();
 }
