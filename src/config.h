@@ -15,9 +15,9 @@ class Config
         Config() = default;
         ~Config() = default;    
     
-        bool load(const std::string &path);
+        bool load(const std::filesystem::path &path);
 
-        bool applyConfigFromSettings(const Settings & settings);
+        bool applyConfigFromPath(const std::filesystem::path &path);
 
         ActionType get(EventType e) const;
 

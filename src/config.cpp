@@ -36,7 +36,7 @@ ActionType Config::get(EventType e) const
 }
 
 
-bool Config::load(const std::string &path)
+bool Config::load(const std::filesystem::path &path)
 {
     json_error_t err{};
     json_t *root = json_load_file(path.c_str(), 0, &err);
@@ -92,21 +92,19 @@ bool Config::load(const std::string &path)
 }
 
 
-  bool Config::applyConfigFromSettings(const Settings & settings) {
-    auto conf = settings.getConfig();
+  bool Config::applyConfigFromPath(const std::filesystem::path &path) {
 
-    if (conf == this->activeJson) {
+    if (path.filename() == this->activeJson) {
       // same profile; still ok
       return true;
     }
 
-    std::string confPath = settings.getConfigFilePath().string();
-    if (!this->load(confPath)) {
-        spdlog::error("config: failed to load new config: {}", confPath);
+    if (!this->load(path)) {
+        spdlog::error("config: failed to load new config: {}", path);
         return false;
     }
 
-    this->activeJson = conf;
+    this->activeJson = path.filename();
     spdlog::info("config: switched to {}", this->activeJson);
     return true;
   }
